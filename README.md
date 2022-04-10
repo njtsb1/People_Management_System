@@ -2,7 +2,7 @@ Daily learning
 
 # Developing a people management system in REST API with Spring Boot
 
-In this project we will develop a small system for managing people in a company through a REST API, created with Spring Boot.
+In this project we developed a small system for managing people in a company through a REST API, created with Spring Boot.
 
 The following topics will be developed and addressed in this project:
 
