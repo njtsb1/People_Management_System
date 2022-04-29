@@ -33,6 +33,8 @@ http://localhost:8080/api/v1/people
 * Heroku account to deploy the project to the cloud
 * Willingness to learn and share knowledge :)
 
+[LICENSE](./LICENSE)
+
 # Below are useful links:
 
 * [SDKMan! for managing and installing Java and Maven](https://sdkman.io/)
