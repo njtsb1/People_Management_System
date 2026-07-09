@@ -1,0 +1,365 @@
+const LANGS = {
+  "en": {
+    title: "Registration",
+    subtitle: "Connect with former classmates, coworkers, and colleagues.",
+    profile: "Profile",
+    register: "Register a person",
+    name: "Name",
+    email: "Email",
+    organization: "Organization",
+    year: "Year",
+    add: "Add",
+    reset: "Reset",
+    participants: "Participants",
+    myFriends: "My Friends",
+    communities: "Communities",
+    noFriends: "No friends yet",
+    searchPlaceholder: "Search by name, year or organization",
+    editProfile: "Edit profile",
+    inviteFriends: "Invite friends",
+    deleteConfirm: "Delete this person?",
+    saved: "Saved",
+    deleted: "Deleted",
+    updated: "Updated",
+    addFriend: "+ friend"
+  },
+  "pt-BR": {
+    title: "Cadastro",
+    subtitle: "Conecte-se com ex-colegas de classe, colegas de trabalho e contatos.",
+    profile: "Perfil",
+    register: "Cadastrar pessoa",
+    name: "Nome",
+    email: "Email",
+    organization: "Organização",
+    year: "Ano",
+    add: "Adicionar",
+    reset: "Limpar",
+    participants: "Participantes",
+    myFriends: "Meus Amigos",
+    communities: "Comunidades",
+    noFriends: "Ainda sem amigos",
+    searchPlaceholder: "Pesquisar por nome, ano ou organização",
+    editProfile: "Editar perfil",
+    inviteFriends: "Convidar amigos",
+    deleteConfirm: "Excluir esta pessoa?",
+    saved: "Salvo",
+    deleted: "Excluído",
+    updated: "Atualizado",
+    addFriend: "+ amigo"
+  },
+  "es": {
+    title: "Registro",
+    subtitle: "Conéctate con excompañeros, colegas y contactos.",
+    profile: "Perfil",
+    register: "Registrar persona",
+    name: "Nombre",
+    email: "Correo",
+    organization: "Organización",
+    year: "Año",
+    add: "Agregar",
+    reset: "Limpiar",
+    participants: "Participantes",
+    myFriends: "Mis Amigos",
+    communities: "Comunidades",
+    noFriends: "Sin amigos aún",
+    searchPlaceholder: "Buscar por nombre, año u organización",
+    editProfile: "Editar perfil",
+    inviteFriends: "Invitar amigos",
+    deleteConfirm: "¿Eliminar esta persona?",
+    saved: "Guardado",
+    deleted: "Eliminado",
+    updated: "Actualizado",
+    addFriend: "+ amigo"
+  }
+};
+
+const SELECTORS = {
+  form: '#person-form',
+  name: '#name',
+  email: '#email',
+  org: '#organization',
+  year: '#year',
+  peopleList: '#people-list',
+  template: '#person-item-template',
+  saveBtn: '#save-btn',
+  resetBtn: '#reset-btn',
+  search: '#search',
+  sort: '#sort',
+  toast: '#toast',
+  langSelect: '#lang-select',
+  appTitle: '#app-title',
+  appSubtitle: '#app-subtitle',
+  profileName: '#profile-name',
+  profileOrg: '#profile-org',
+  themeToggle: '#theme-toggle',
+  themeIcon: '#theme-icon',
+  yearText: '#year'
+};
+
+let state = {
+  people: [],
+  editingId: null,
+  lang: 'en',
+  theme: 'dark'
+};
+
+function $(sel){return document.querySelector(sel)}
+function $all(sel){return Array.from(document.querySelectorAll(sel))}
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem('people_manager_v1');
+    if(raw) state = {...state, ...JSON.parse(raw)};
+  }catch(e){console.warn('load error', e)}
+}
+function saveState(){
+  localStorage.setItem('people_manager_v1', JSON.stringify(state));
+}
+
+function i18(key){
+  const dict = LANGS[state.lang] || LANGS.en;
+  return dict[key] || key;
+}
+
+function showToast(msg, timeout=2000){
+  const t = $(SELECTORS.toast);
+  t.textContent = msg;
+  t.style.display = 'block';
+  setTimeout(()=> t.style.display='none', timeout);
+}
+
+function renderTexts(){
+  $(SELECTORS.appTitle).textContent = i18('title');
+  $(SELECTORS.appSubtitle).textContent = i18('subtitle');
+  $(SELECTORS.profileName).textContent = i18('profile');
+  $(SELECTORS.profileOrg).textContent = '';
+  $('#form-heading').textContent = i18('register');
+  $('label[for="name"]').textContent = i18('name');
+  $('label[for="email"]').textContent = i18('email');
+  $('label[for="organization"]').textContent = i18('organization');
+  $('#label-year').textContent = i18('year');
+  $(SELECTORS.saveBtn).textContent = i18('add');
+  $(SELECTORS.resetBtn).textContent = i18('reset');
+  $('#list-heading').textContent = i18('participants');
+  $('#sidebar-heading').textContent = i18('myFriends');
+  $(SELECTORS.yearText).textContent = new Date().getFullYear();
+  $('#search').placeholder = i18('searchPlaceholder');
+}
+
+function applyTheme(){
+  const body = document.body;
+  if(state.theme === 'light'){
+    body.classList.remove('theme-dark');
+    body.classList.add('theme-light');
+    document.documentElement.classList.add('light');
+    $(SELECTORS.themeToggle).setAttribute('aria-pressed','false');
+    $(SELECTORS.themeIcon).innerHTML = sunSVG();
+  } else {
+    body.classList.remove('theme-light');
+    body.classList.add('theme-dark');
+    document.documentElement.classList.remove('light');
+    $(SELECTORS.themeToggle).setAttribute('aria-pressed','true');
+    $(SELECTORS.themeIcon).innerHTML = moonSVG();
+  }
+}
+
+function moonSVG(){
+  return `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" focusable="false" aria-hidden="true">
+    <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" fill="currentColor"/>
+  </svg>`;
+}
+function sunSVG(){
+  return `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" focusable="false" aria-hidden="true">
+    <path d="M6.76 4.84l-1.8-1.79L3.17 4.84l1.79 1.8 1.8-1.8zM1 13h3v-2H1v2zm10 9h2v-3h-2v3zm7.03-2.03l1.79 1.79 1.79-1.79-1.79-1.79-1.79 1.79zM20 11v2h3v-2h-3zM4.22 19.78l1.79-1.79-1.79-1.79-1.79 1.79 1.79 1.79zM12 6a6 6 0 100 12 6 6 0 000-12z" fill="currentColor"/>
+  </svg>`;
+}
+
+function uid(){ return 'p_' + Math.random().toString(36).slice(2,9) }
+
+function addPerson(person){
+  state.people.push(person);
+  saveState();
+  renderList();
+  showToast(i18('saved'));
+}
+
+function updatePerson(id, data){
+  const idx = state.people.findIndex(p=>p.id===id);
+  if(idx>-1){
+    state.people[idx] = {...state.people[idx], ...data};
+    saveState();
+    renderList();
+    showToast(i18('updated'));
+  }
+}
+
+function deletePerson(id){
+  if(!confirm(i18('deleteConfirm'))) return;
+  state.people = state.people.filter(p=>p.id!==id);
+  saveState();
+  renderList();
+  showToast(i18('deleted'));
+}
+
+function renderList(){
+  const list = $(SELECTORS.peopleList);
+  list.innerHTML = '';
+  const template = document.getElementById('person-item-template');
+  const search = $(SELECTORS.search).value.trim().toLowerCase();
+  const sortBy = $(SELECTORS.sort).value;
+
+  let items = state.people.slice();
+  if(search){
+    items = items.filter(p => {
+      const yearStr = p.year ? String(p.year) : '';
+      return (p.name + ' ' + yearStr + ' ' + (p.organization||''))
+        .toLowerCase()
+        .includes(search);
+    });
+  }
+
+  items.sort((a,b)=>{
+    if(sortBy==='year'){
+      const ay = a.year || 0;
+      const by = b.year || 0;
+      return ay - by;
+    }
+    if(sortBy==='organization'){
+      return (a.organization||'').localeCompare(b.organization||'');
+    }
+    return a.name.localeCompare(b.name);
+  });
+
+  if(items.length===0){
+    const li = document.createElement('li');
+    li.className = 'muted';
+    li.textContent = i18('participants') + ' — 0';
+    list.appendChild(li);
+    return;
+  }
+
+  items.forEach(p=>{
+    const node = template.content.cloneNode(true);
+    const li = node.querySelector('li');
+    li.dataset.id = p.id;
+    node.querySelector('.pname').textContent = p.name;
+    node.querySelector('.pemail').textContent = p.email;
+    node.querySelector('.porg').textContent = p.organization || '';
+    node.querySelector('.pyear').textContent = p.year ? `${i18('year')}: ${p.year}` : '';
+    const addBtn = node.querySelector('.add-friend');
+    addBtn.textContent = i18('addFriend');
+    addBtn.addEventListener('click', ()=> {
+      addToFriends(p);
+    });
+
+    node.querySelector('.edit').addEventListener('click', ()=> {
+      startEdit(p.id);
+    });
+    node.querySelector('.delete').addEventListener('click', ()=> {
+      deletePerson(p.id);
+    });
+
+    list.appendChild(node);
+  });
+}
+
+function addToFriends(person){
+  const box = $('#friends');
+  const el = document.createElement('div');
+  el.className = 'friend';
+  el.textContent = person.name;
+  box.appendChild(el);
+  showToast(`${person.name} — ${i18('saved')}`);
+}
+
+function startEdit(id){
+  const p = state.people.find(x=>x.id===id);
+  if(!p) return;
+  state.editingId = id;
+  $(SELECTORS.name).value = p.name;
+  $(SELECTORS.email).value = p.email;
+  $(SELECTORS.org).value = p.organization || '';
+  $(SELECTORS.year).value = p.year || '';
+  $(SELECTORS.saveBtn).textContent = i18('updated');
+  $(SELECTORS.name).focus();
+}
+
+function resetForm(){
+  state.editingId = null;
+  $(SELECTORS.form).reset();
+  $(SELECTORS.saveBtn).textContent = i18('add');
+}
+
+function bindEvents(){
+  // form submit
+  $(SELECTORS.form).addEventListener('submit', (e)=>{
+    e.preventDefault();
+    const name = $(SELECTORS.name).value.trim();
+    const email = $(SELECTORS.email).value.trim();
+    const org = $(SELECTORS.org).value.trim();
+    const yearVal = $(SELECTORS.year).value.trim();
+    const year = yearVal ? parseInt(yearVal, 10) : null;
+    if(!name || !email) return;
+
+    if(state.editingId){
+      updatePerson(state.editingId, {name, email, organization:org, year});
+    } else {
+      addPerson({id: uid(), name, email, organization:org, year});
+    }
+    resetForm();
+  });
+
+  $(SELECTORS.resetBtn).addEventListener('click', resetForm);
+
+  $(SELECTORS.search).addEventListener('input', renderList);
+  $(SELECTORS.sort).addEventListener('change', renderList);
+
+  $(SELECTORS.langSelect).addEventListener('change', (e)=>{
+    state.lang = e.target.value;
+    renderTexts();
+    renderList();
+    saveState();
+  });
+
+  $(SELECTORS.themeToggle).addEventListener('click', ()=>{
+    state.theme = state.theme === 'dark' ? 'light' : 'dark';
+    applyTheme();
+    saveState();
+  });
+
+  // keyboard accessibility: Enter on list items to edit
+  $(SELECTORS.peopleList).addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter'){
+      const li = e.target.closest('li');
+      if(li) startEdit(li.dataset.id);
+    }
+  });
+}
+
+function initDefaults(){
+  // default sample data if none
+  if(!state.people || state.people.length === 0){
+    state.people = [
+      {id: uid(), name: "Patricia Alves", email: "patricia@example.com", organization: "Acme", year: 1998},
+      {id: uid(), name: "Daniel Miranda", email: "daniel@example.com", organization: "Acme", year: 2008},
+      {id: uid(), name: "Anderson Cardoso", email: "anderson@example.com", organization: "Acme", year: 2018}
+    ];
+  }
+}
+
+function init(){
+  loadState();
+  if(!state.lang) state.lang = 'en';
+  if(!state.theme) state.theme = 'dark';
+  initDefaults();
+
+  $(SELECTORS.langSelect).value = state.lang;
+  applyTheme();
+  renderTexts();
+  bindEvents();
+  renderList();
+
+  $(SELECTORS.yearText).textContent = new Date().getFullYear();
+}
+
+document.addEventListener('DOMContentLoaded', init);
